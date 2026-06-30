@@ -1,0 +1,11 @@
+# Ignore course lecture slides and heavy zip archives
+Presentations_Mitkadem/
+
+# Ignore compiled C++ binaries and build files
+*.exe
+*.o
+*.obj
+*.out
+.vs/
+.idea/
+.vscode/
