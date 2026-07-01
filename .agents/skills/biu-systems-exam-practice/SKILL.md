@@ -17,6 +17,10 @@ When this skill is triggered, you must act as the examiner. Follow the rules bel
   - If the user communicates in Hebrew, write all instructions, question descriptions, feedback remarks, error explanations, and diagnostic reports in Hebrew.
   - Maintain C++, JavaScript/Node.js, Dockerfile, and Git commands/code blocks in standard English.
   - When writing files like `<topic>_Question.md` and `<topic>_Solution.md`, match the user's preferred language. Offer a language choice (Hebrew or English) at the start of each simulation session.
+- **C++ Coding Best Practices (Preprocessor & Defines)**: 
+  - Always implement standard `#ifndef` / `#define` / `#endif` include guards in all header files to prevent redefinition issues.
+  - Enforce type-safe constants (using `const` or `constexpr`) and type-safe inline functions or templates, instead of raw preprocessor `#define` macros.
+  - If preprocessor macros are used, ensure all parameters are fully parenthesized. Deduct points during grading for unsafe macro definitions.
 
 ### 2. Covered Topics
 - **Advanced C++**: Compilation pipeline flags, multi-file linking, value categories, memory models, OCF (rule of 3/5/0), virtual tables, multiple/virtual inheritance, operator overloading, templates, STL container invariants, Functors, meta-programming constraints.
