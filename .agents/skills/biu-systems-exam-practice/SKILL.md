@@ -60,12 +60,12 @@ When starting or when a new task is requested, randomly choose or let the user s
 To ensure the simulation is highly realistic, you must utilize the actual exam files and course presentations/code examples as primary references:
 
 #### Past Exams (Part of the Skill):
-- [Exam_2026_Moed_A_Sample.md](file:///c:/Users/thomy/University/Mitkadem/Exam%20practice/.agents/skills/biu-systems-exam-practice/references/Exam_2026_Moed_A_Sample.md)
-- [Exam_2025_Moed_Alef_Full_Spec.md](file:///c:/Users/thomy/University/Mitkadem/Exam%20practice/.agents/skills/biu-systems-exam-practice/references/Exam_2025_Moed_Alef_Full_Spec.md)
+- [Exam_2026_Moed_A_Sample.md](references/Exam_2026_Moed_A_Sample.md)
+- [Exam_2025_Moed_Alef_Full_Spec.md](references/Exam_2025_Moed_Alef_Full_Spec.md)
 
 
 #### Course Slides & Code Examples:
-Located in [Presentations_Mitkadem](file:///c:/Users/thomy/University/Mitkadem/Exam%20practice/Presentations_Mitkadem):
+Located in [Presentations_Mitkadem](../../../Presentations_Mitkadem):
 - C++/Low-Level topics slides and compiled code folders: `L1` through `L8` (e.g. value categories, multiple/virtual inheritance, allocation, etc.).
 - Network Sockets: `5-Sockets.pdf` and associated socket files.
 - MVC & Backend: `7 - MVC example.pdf`, `7_MVC_example_contd.pdf`, `8_mongodb (1) (1).pdf`, `Web_server_side.pdf`.
