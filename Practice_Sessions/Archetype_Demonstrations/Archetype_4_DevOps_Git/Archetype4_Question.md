@@ -17,6 +17,7 @@ CMD ["npm", "start"]
 2. Explain the consequences on execution build time when a developer modifies a single CSS/JS source file.
 3. Write the fully optimized version of this `Dockerfile` to maximize build speeds.
 
+
 ---
 
 ## Section B: Git Low-Level Object Storage (10 Points)

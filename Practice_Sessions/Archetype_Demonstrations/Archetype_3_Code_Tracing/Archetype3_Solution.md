@@ -26,20 +26,20 @@ Laptop constructed
 
 ### 1. Step-by-Step Queue Lifecycle
 
-| Execution Step | Action | Call Stack | Microtask Queue | Macrotask Queue | Console Output |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **1** | Synchronous line | `console.log('Start')` | *Empty* | *Empty* | `Start` |
-| **2** | `setTimeout` registration | `setTimeout(...)` | *Empty* | `Timeout 1 Callback` | |
-| **3** | Promise registration | `Promise.resolve().then(...)` | *Empty* | `Timeout 1 Callback` | |
-| **4** | Call `runAsync()` | `console.log('Async Start')` | `Promise 1 Callback` | `Timeout 1 Callback` | `Async Start` |
-| **5** | `await Promise.resolve()` | Yield control in `runAsync` | `Promise 1 Callback`, `Async End Callback` | `Timeout 1 Callback` | |
-| **6** | Synchronous line | `console.log('End')` | `Promise 1 Callback`, `Async End Callback` | `Timeout 1 Callback` | `End` |
-| **7** | **Main Line Ends** | Call Stack clears. Checks Microtask Queue. | `Promise 1 Callback`, `Async End Callback` | `Timeout 1 Callback` | |
-| **8** | Dequeue Microtask 1 | Execute `Promise 1` callback. Chains `Promise 2`. | `Async End Callback`, `Promise 2 Callback` | `Timeout 1 Callback` | `Promise 1` |
-| **9** | Dequeue Microtask 2 | Resume `runAsync` context. | `Promise 2 Callback` | `Timeout 1 Callback` | `Async End` |
-| **10**| Dequeue Microtask 3 | Execute `Promise 2` callback. | *Empty* | `Timeout 1 Callback` | `Promise 2` |
-| **11**| **Microtasks Clear** | Checks Macrotask Queue. | *Empty* | `Timeout 1 Callback` | |
-| **12**| Dequeue Macrotask | Execute `setTimeout` callback. | *Empty* | *Empty* | `Timeout 1` |
+| Execution Step | Action                    | Call Stack                                        | Microtask Queue                            | Macrotask Queue      | Console Output |
+| :------------- | :------------------------ | :------------------------------------------------ | :----------------------------------------- | :------------------- | :------------- |
+| **1**          | Synchronous line          | `console.log('Start')`                            | *Empty*                                    | *Empty*              | `Start`        |
+| **2**          | `setTimeout` registration | `setTimeout(...)`                                 | *Empty*                                    | `Timeout 1 Callback` |                |
+| **3**          | Promise registration      | `Promise.resolve().then(...)`                     | *Empty*                                    | `Timeout 1 Callback` |                |
+| **4**          | Call `runAsync()`         | `console.log('Async Start')`                      | `Promise 1 Callback`                       | `Timeout 1 Callback` | `Async Start`  |
+| **5**          | `await Promise.resolve()` | Yield control in `runAsync`                       | `Promise 1 Callback`, `Async End Callback` | `Timeout 1 Callback` |                |
+| **6**          | Synchronous line          | `console.log('End')`                              | `Promise 1 Callback`, `Async End Callback` | `Timeout 1 Callback` | `End`          |
+| **7**          | **Main Line Ends**        | Call Stack clears. Checks Microtask Queue.        | `Promise 1 Callback`, `Async End Callback` | `Timeout 1 Callback` |                |
+| **8**          | Dequeue Microtask 1       | Execute `Promise 1` callback. Chains `Promise 2`. | `Async End Callback`, `Promise 2 Callback` | `Timeout 1 Callback` | `Promise 1`    |
+| **9**          | Dequeue Microtask 2       | Resume `runAsync` context.                        | `Promise 2 Callback`                       | `Timeout 1 Callback` | `Async End`    |
+| **10**         | Dequeue Microtask 3       | Execute `Promise 2` callback.                     | *Empty*                                    | `Timeout 1 Callback` | `Promise 2`    |
+| **11**         | **Microtasks Clear**      | Checks Macrotask Queue.                           | *Empty*                                    | `Timeout 1 Callback` |                |
+| **12**         | Dequeue Macrotask         | Execute `setTimeout` callback.                    | *Empty*                                    | *Empty*              | `Timeout 1`    |
 
 ### 2. Final Terminal Output Sequence
 ```

@@ -9,3 +9,6 @@ Presentations_Mitkadem/
 .vs/
 .idea/
 .vscode/
+
+# Ignore .obsidian folder
+.obsidian/
