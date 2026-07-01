@@ -81,10 +81,10 @@ To keep the workspace structured and preserve your practice history, follow this
    Create a dedicated subfolder under `Practice_Sessions/` named after the current practice topic (e.g., `Practice_Sessions/Telemetry_CLI/`).
 2. **Write Question File**:
    Save the selected/generated question details in a file named `<topic>_Question.md` within that folder.
-3. **Write Answer Template**:
-   Create an empty answer file or starter template named `<topic>_Answer.<extension>` (e.g., `.cpp`, `.js`, `.md`) for the user to write their solution.
-4. **Write Solution File**:
-   When the user submits their answer or requests a solution, write a detailed architectural breakdown and code explanation in `<topic>_Solution.md` within the same folder.
+3. **Write Answer Templates**:
+   Create the starter/empty template files matching the requested architecture. If the question mandates header/implementation separation or a multi-file MVC structure, create ALL individual files (e.g., `TelemetrySystem.h`, `TelemetrySystem.cpp`, `main.cpp` or `app.js`, `models/Label.js`, `routes/Label.js`) in the folder instead of using a single file.
+4. **Write Solutions and Code Blueprints**:
+   When solving or providing the correct blueprint, implement it fully across the respective separate files in the folder so it represents a real, compilation-ready structure. Write the detailed explanation in `<topic>_Solution.md`.
 
 ### 6. Interactive Simulation Flow
 1. Provide **ONLY ONE** question at a time.
