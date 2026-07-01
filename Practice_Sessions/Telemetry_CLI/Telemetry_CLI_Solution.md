@@ -5,21 +5,23 @@ This document details the software engineering patterns, architectural layouts, 
 ---
 
 ## 1. Architectural Layout & Separation of Concerns
-To prevent coupling between input parsing and internal logic, we partition the system into three main layers:
+To prevent coupling between input parsing and internal logic, we partition the system into three main layers, implemented across separate files:
 
-### A. Model / Service Layer (`TelemetrySystem`)
+### A. Model / Service Layer
+- **Files**: [TelemetrySystem.h](TelemetrySystem.h) and [TelemetrySystem.cpp](TelemetrySystem.cpp)
 - **Responsibility**: Tracks metric history, handles ignore-filters, sets metric thresholds, calculates running averages, and compares values against limits.
-- **Independence**: It knows nothing about the command line input, string streams, token split patterns, or console prompt formats. It only processes structured arguments (e.g. `std::string` name, `int` value) sent by caller commands.
+- **Independence**: It has no knowledge of command-line input parsing or stdin streaming. It only processes structured arguments (e.g., `std::string` name, `int` value).
 
-### B. Command Pattern Layer (`Command` & Concrete Subclasses)
+### B. Command Pattern Layer
+- **Files**: [Command.h](Command.h) and [Command.cpp](Command.cpp)
 - **Responsibility**: Implements the Command Pattern.
   - `Command`: The abstract base interface requiring `void execute(const std::vector<std::string>& args, TelemetrySystem& system)`.
-  - `TrackCommand`, `AverageCommand`, `ThresholdCommand`: Unpack command tokens, validate and convert them (e.g., string-to-int conversion), and execute the matching operation on the model.
-  - If parameter parsing fails (e.g., invalid data types or missing parameters), the command silences the error and aborts execution, satisfying the robustness constraints.
+  - Concrete Commands (`TrackCommand`, `AverageCommand`, `ThresholdCommand`): Unpack command tokens, validate and convert them robustly, and execute operations on `TelemetrySystem`.
+  - If parameter parsing fails (e.g., invalid data types), the command silences the error and aborts execution, satisfying robustness constraints.
 
-### C. Dispatcher / Event Loop (`CommandDispatcher` & `main`)
-- **Responsibility**: Houses the dispatcher registry mapping string command verbs (like `"track"`) to polymorphic smart pointers: `std::map<std::string, std::unique_ptr<Command>> command_registry`.
-- **Event Loop**: Reads from `std::cin` line-by-line, parses the first token as the command verb, and passes the remaining tokens as arguments to the dispatcher.
+### C. Dispatcher / Event Loop
+- **File**: [main.cpp](main.cpp)
+- **Responsibility**: Houses the main event loop reading from `std::cin` line-by-line, parses the first token as the command verb, and dispatches command arguments via the `CommandDispatcher` registry.
 
 ---
 
