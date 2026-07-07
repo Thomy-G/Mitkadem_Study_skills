@@ -275,7 +275,7 @@ int main() {
 
 ## 6. POSIX Multi-Processing & Multithreading
 
-### 5.1 Processes: `fork()` and `exec()`
+### 6.1 Processes: `fork()` and `exec()`
 `fork()` duplicates the calling process.
 `exec()` replaces the process layout entirely.
 
@@ -310,7 +310,7 @@ void process_spawning() {
 }
 ```
 
-### 5.2 POSIX Threads (`pthreads`) & Condition Variables
+### 6.2 POSIX Threads (`pthreads`) & Condition Variables
 Condition variables permit threads to sleep until notified of state changes.
 
 ```cpp
@@ -355,7 +355,7 @@ void* consumer(void* arg) {
 }
 ```
 
-### 5.3 Thread-Local Storage (`thread_local`)
+### 6.3 Thread-Local Storage (`thread_local`)
 The `thread_local` keyword defines a variable that is instantiated once per thread. Each thread has its own separate instance of the variable, avoiding race conditions and the need for mutex locking when tracking thread-specific statistics (e.g., tracking the count of processed requests).
 
 ```cpp
@@ -367,6 +367,96 @@ void process_request() {
     static thread_local int request_count = 0;
     request_count++;
     std::cout << "Thread " << std::this_thread::get_id() << " request count: " << request_count << std::endl;
+}
+```
+
+### 6.4 Standard C++ Threads (`std::thread`)
+Modern C++ (C++11 and onwards) provides standard concurrency classes. Unlike `pthread_create`, `std::thread` uses standard templates, allowing any callable entity (function, functor, lambda) to run in a separate execution flow.
+
+#### 1. Creating and Launching Threads
+When a `std::thread` object is created, it begins executing immediately.
+*   **`.join()`**: Blocks the parent thread until the child thread finishes execution.
+*   **`.detach()`**: Disconnects the thread object from the actual execution thread, allowing it to run independently in the background.
+*   *Warning*: A `std::thread` destructor calls `std::terminate()` if the thread object is still joinable (i.e. has not been joined or detached).
+
+```cpp
+#include <iostream>
+#include <thread>
+
+void print_message(const std::string& msg, int count) {
+    for (int i = 0; i < count; ++i) {
+        std::cout << msg << std::endl;
+    }
+}
+
+int main() {
+    // Launching a thread with arguments
+    std::thread t1(print_message, "Hello from thread", 5);
+    
+    // Launching a thread via lambda
+    std::thread t2([]() {
+        std::cout << "Hello from lambda thread" << std::endl;
+    });
+
+    t1.join(); // Wait for t1
+    t2.join(); // Wait for t2
+    return 0;
+}
+```
+
+#### 2. Passing Arguments by Reference (`std::ref`)
+By default, standard C++ thread constructors copy or move all arguments. If a function parameter is a reference (`T&`), passing it directly to the thread constructor will fail to compile. Wrap the reference argument in `std::ref()` to pass it by reference.
+
+```cpp
+#include <iostream>
+#include <thread>
+#include <functional>
+
+void increment(int& val) {
+    val++;
+}
+
+int main() {
+    int num = 10;
+    // std::thread t(increment, num); // Compilation Error!
+    std::thread t(increment, std::ref(num)); // Correct
+    t.join();
+    std::cout << "num is: " << num << std::endl; // Prints 11
+    return 0;
+}
+```
+
+#### 3. Thread Synchronization: Mutex and Lock Guards
+C++ provides `std::mutex` and RAII-based wrapper structures to automate locking/unlocking and prevent data races:
+*   `std::lock_guard<std::mutex> lock(mtx)`: Locks the mutex upon construction and automatically unlocks it when the lock guard goes out of scope (destructor call).
+*   `std::unique_lock<std::mutex> lock(mtx)`: Similar to `lock_guard`, but allows manual locking/unlocking, deferring locking, or transfer of ownership (needed for condition variables).
+
+```cpp
+#include <iostream>
+#include <thread>
+#include <mutex>
+#include <vector>
+
+std::mutex mtx;
+int shared_counter = 0;
+
+void safe_increment() {
+    // Automatically locks mtx here
+    std::lock_guard<std::mutex> lock(mtx);
+    shared_counter++;
+    // mtx is automatically unlocked when lock goes out of scope
+}
+
+int main() {
+    std::vector<std::thread> pool;
+    for (int i = 0; i < 10; ++i) {
+        pool.emplace_back(safe_increment);
+    }
+    for (auto& t : pool) {
+        t.join();
+    }
+    std::cout << "Counter: " << shared_counter << std::endl; // Prints 10
+    return 0;
 }
 ```
 
@@ -458,4 +548,56 @@ TEST_F(DatabaseTest, CheckConnectionState) {
 TEST_F(DatabaseTest, QueryErrorValidation) {
     EXPECT_THROW(db->executeQuery(""), std::invalid_argument);
 }
+```
+
+
+---
+
+## 9. C++ Regular Expressions & Capturing Groups (`std::regex`)
+
+C++ provides the `<regex>` library to validate input structures, search substrings, and extract pattern subsets.
+
+### 9.1 Match & Search API
+*   `std::regex_match`: Returns `true` only if the **entire** input string matches the regular expression pattern.
+*   `std::regex_search`: Returns `true` if **any substring** inside the input matches the pattern.
+*   `std::smatch` (string-based) or `std::cmatch` (character array-based): Holds the match result collections.
+
+### 9.2 Capturing Groups Mechanism
+Capturing groups are defined by enclosing portions of a regular expression pattern in parentheses `(...)`.
+*   **Result layout**: When `regex_match` or `regex_search` populates a `std::smatch` object (e.g., `results`), it acts as a collection:
+    *   `results[0]`: Contains the **entire matched string**.
+    *   `results[1]`: Contains the substring captured by the **first group** `(...)`.
+    *   `results[2]`: Contains the substring captured by the **second group** `(...)`, and so on.
+    *   `results.size()`: Returns `1 + number_of_capturing_groups`.
+
+```cpp
+#include <iostream>
+#include <string>
+#include <regex>
+
+void parse_sensor_input(const std::string& input) {
+    // Regex pattern matching: Word, spaces, and integer.
+    // e.g., "temp_sensor 42"
+    // Capture groups: Group 1 matches sensor name, Group 2 matches data value.
+    std::regex pattern("([a-zA-Z0-9_]+)\\s+(\\d+)");
+    std::smatch matches;
+
+    if (std::regex_match(input, matches, pattern)) {
+        // matches[0] is the entire match (e.g., "temp_sensor 42")
+        std::string sensor_name = matches[1].str(); // Group 1 capture
+        std::string sensor_value = matches[2].str(); // Group 2 capture
+        
+        int val = std::stoi(sensor_value);
+        std::cout << "Parsed Sensor: " << sensor_name << " with Value: " << val << std::endl;
+    } else {
+        std::cout << "Invalid input format!" << std::endl;
+    }
+}
+
+int main() {
+    parse_sensor_input("pressure_valve_3   120"); // Success
+    parse_sensor_input("invalid_data");             // Fails
+    return 0;
+}
+```
 ```
