@@ -353,44 +353,60 @@ const taskSchema = new mongoose.Schema({
 module.exports = mongoose.model('Task', taskSchema);
 ```
 
-#### `routes/task.js` (Modular Router with Chained Verbs)
+#### `routes/task.js` (Modular Router)
 ```javascript
 const express = require('express');
 const router = express.Router();
-const Task = require('../models/Task');
+const taskController = require('../controllers/taskController');
 
-// Route chaining simplifies code by grouping handlers by path
+// Route chaining delegates requests to controller functions
 router.route('/')
-    .get(async (req, res) => {
-        try {
-            const tasks = await Task.find();
-            res.json(tasks);
-        } catch (err) {
-            res.status(500).json({ error: err.message });
-        }
-    })
-    .post(async (req, res) => {
-        try {
-            const newTask = new Task(req.body);
-            await newTask.save();
-            res.status(201).json(newTask);
-        } catch (err) {
-            res.status(400).json({ error: err.message });
-        }
-    });
+    .get(taskController.getTasks)
+    .post(taskController.createTask);
 
 router.route('/:id')
-    .delete(async (req, res) => {
-        try {
-            const task = await Task.findByIdAndDelete(req.params.id);
-            if (!task) return res.status(404).json({ error: "Task not found" });
-            res.status(204).send();
-        } catch (err) {
-            res.status(500).json({ error: err.message });
-        }
-    });
+    .delete(taskController.deleteTask);
 
 module.exports = router;
+```
+
+#### `controllers/taskController.js` (Controllers - Business Logic Callbacks)
+```javascript
+const Task = require('../models/Task');
+
+// GET /api/tasks
+const getTasks = async (req, res) => {
+    try {
+        const tasks = await Task.find();
+        res.status(200).json(tasks);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
+
+// POST /api/tasks
+const createTask = async (req, res) => {
+    try {
+        const newTask = new Task(req.body);
+        await newTask.save();
+        res.status(201).json(newTask);
+    } catch (err) {
+        res.status(400).json({ error: err.message });
+    }
+};
+
+// DELETE /api/tasks/:id
+const deleteTask = async (req, res) => {
+    try {
+        const task = await Task.findByIdAndDelete(req.params.id);
+        if (!task) return res.status(404).json({ error: "Task not found" });
+        res.status(204).send(); // 204 No Content
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
+
+module.exports = { getTasks, createTask, deleteTask };
 ```
 
 #### `app.js` (Main Server)
