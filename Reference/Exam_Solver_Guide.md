@@ -447,7 +447,46 @@ mongoose.connect('mongodb://localhost:27017/todo_db')
 ---
 ---
 
-### B. React Frontend UI (State updates & API requests)
+### B. Core React & CSS Concepts (Revision Sheet)
+
+#### 1. What are Props and State?
+*   **State**: The local, private data storage of a component. State is mutable *only* by using its corresponding setter function (e.g. `setTasks`). When state changes, React automatically schedules a re-render of the component.
+*   **Props**: Read-only properties passed down from a parent component to a child component (like HTML attributes). A child component *cannot* modify its props; it must notify the parent via callback functions to change them.
+
+#### 2. React Hooks: `useState` & `useEffect`
+*   **`useState(initialValue)`**:
+    *   *Purpose*: Declares a local state variable.
+    *   *Returns*: An array of size two: `[currentState, setterFunction]`.
+    *   *Syntax*: `const [value, setValue] = useState(initialValue);`
+*   **`useEffect(callback, dependencies)`**:
+    *   *Purpose*: Runs asynchronous or side-effect code (like data fetching, event subscriptions).
+    *   *Behavior*:
+        *   `dependencies = []` (Empty): Runs **once** when the component is mounted to the screen.
+        *   `dependencies = [x, y]` (Watched): Runs on mount and whenever `x` or `y` changes.
+        *   `dependencies` omitted: Runs on *every single render* (danger: avoid this for data fetching!).
+
+#### 3. Common CSS Properties Cheat Sheet
+*   **`display: flex`**: Establishes a flex container for laying out child items in rows or columns.
+    *   *Example*: `.container { display: flex; }`
+*   **`flex-direction`**: Defines the layout axis of flex items (horizontal `row` or vertical `column`).
+    *   *Example*: `.container { flex-direction: column; }`
+*   **`justify-content`**: Aligns flex items along the **main axis** (e.g. horizontally if row, vertically if column). Options: `center`, `flex-start`, `flex-end`, `space-between`.
+    *   *Example*: `.container { justify-content: space-between; }`
+*   **`align-items`**: Aligns flex items along the **cross axis** (perpendicular to the main axis). Options: `center`, `stretch`, `flex-start`, `flex-end`.
+    *   *Example*: `.container { align-items: center; }`
+*   **`margin`**: Space *outside* the element's border.
+    *   *Example*: `button { margin: 10px 20px; }` (10px vertical, 20px horizontal)
+*   **`padding`**: Space *inside* the element, between its content and border.
+    *   *Example*: `div { padding: 16px; }`
+*   **`border`**: Border width, style, and color.
+    *   *Example*: `div { border: 2px solid white; }`
+*   **`background-color`**: Background color.
+    *   *Example*: `body { background-color: #f0f0f0; }`
+
+---
+---
+
+### C. React Frontend UI (State updates & API requests)
 
 #### `TaskList.jsx`
 ```jsx
@@ -596,10 +635,93 @@ document.addEventListener("DOMContentLoaded", () => {
 *   💥 **Missing Form Default Prevention**: Forgetting `e.preventDefault()` inside submit handlers. The browser will reload the page immediately, wiping out the application state.
 
 ---
----
----
 
 ## 3. Mobile Development
+
+### React Web vs. React Native: Side-by-Side Comparison
+Here is a side-by-side comparison of the same simple input-and-list application to illustrate how tags, styling, and event parameters map between platforms.
+
+#### React Web Component
+```jsx
+import React, { useState } from 'react';
+
+export default function WebApp() {
+    const [items, setItems] = useState([]);
+    const [text, setText] = useState('');
+
+    const handleAdd = () => {
+        setItems([...items, text]);
+        setText('');
+    };
+
+    return (
+        <div style={{ padding: '20px' }}>
+            <input 
+                value={text} 
+                onChange={e => setText(e.target.value)} 
+                placeholder="Enter text" 
+            />
+            <button onClick={handleAdd}>Add</button>
+            <ul>
+                {items.map((item, index) => (
+                    <li key={index}>{item}</li>
+                ))}
+            </ul>
+        </div>
+    );
+}
+```
+
+#### React Native Mobile Component
+```jsx
+import React, { useState } from 'react';
+import { View, TextInput, TouchableOpacity, Text, FlatList } from 'react-native';
+
+export default function MobileApp() {
+    const [items, setItems] = useState([]);
+    const [text, setText] = useState('');
+
+    const handleAdd = () => {
+        setItems([...items, { key: Date.now().toString(), val: text }]);
+        setText('');
+    };
+
+    return (
+        <View style={{ padding: 20 }}>
+            <TextInput 
+                value={text} 
+                onChangeText={setText} // Directly passes the text string, not event
+                placeholder="Enter text" 
+            />
+            <TouchableOpacity onPress={handleAdd}>
+                <Text>Add</Text>
+            </TouchableOpacity>
+            <FlatList
+                data={items}
+                keyExtractor={item => item.key}
+                renderItem={({ item }) => (
+                    <Text>{item.val}</Text>
+                )}
+            />
+        </View>
+    );
+}
+```
+
+---
+
+### Common React Native Elements Cheat Sheet
+
+*   **`<View>`**: The fundamental layout container (analogous to `<div>` on web). Used for flexing, structuring, and positioning child components.
+*   **`<Text>`**: The only container allowed to render raw text strings (analogous to `<span>` or `<p>`).
+*   **`<TextInput>`**: Input field (analogous to `<input type="text">`). Uses `onChangeText` callback passing the raw string directly.
+*   **`<TouchableOpacity>`**: A wrapper to make layouts respond properly to touch inputs (analogous to `<button>`). Fades opacity when clicked.
+*   **`<ScrollView>`**: A simple scrolling container. Renders all child items immediately.
+*   **`<FlatList>`**: Highly optimized scroll container for rendering lists. It lazy-renders only the elements on screen, saving memory.
+*   **`<Image>`**: Renders remote or local images (analogous to `<img>`). Takes a `source={{ uri: 'url' }}` property.
+*   **`StyleSheet.create({...})`**: Wrapper method to declare styles in React Native, optimizing memory and passing compiled style references down.
+
+---
 
 ### A. React Native (Scroll Optimization)
 ```javascript
