@@ -74,6 +74,10 @@ Document exactly 4 bugs from `server.cpp`, `client.py`, and `controllers/auth.js
 *   **Predicted Terminal Console Output:**
 *   **Step-by-step Execution Tracing:**
 
+| Queue | Microtask queue | Macrotask Queue           |     |
+| ----- | --------------- | ------------------------- | --- |
+|       |                 | setTimeout log "timeout " |     |
+
 ### Section B: C++ Multiple & Virtual Inheritance
 *   **Predicted Terminal Console Output:**
 *   **Trace & Construction/Destruction Mechanics:**
@@ -85,22 +89,22 @@ Document exactly 4 bugs from `server.cpp`, `client.py`, and `controllers/auth.js
 ### Section A: Low-Level Git Object Mechanics
 Fill in the table detailing objects created in `.git/objects/`:
 
-| Object Hash Prefix | Object Type (`blob`/`tree`/`commit`) | Description / Content |
-| :--- | :--- | :--- |
-| **Object 1** | | |
-| **Object 2** | | |
-| **Object 3** | | |
-| **Object 4** | | |
-| **Object 5** | | |
-| **Object 6** | | |
+| Object Hash Prefix | Object Type (`blob`/`tree`/`commit`) | Description / Content                                       |
+| :----------------- | :----------------------------------- | :---------------------------------------------------------- |
+| **Object 1**       | blob                                 | contents of a.txt without metadata or file name "Hello BIU" |
+| **Object 2**       | Tree                                 | Points to file                                              |
+| **Object 3**       |                                      |                                                             |
+| **Object 4**       |                                      |                                                             |
+| **Object 5**       |                                      |                                                             |
+| **Object 6**       |                                      |                                                             |
 
 ### Section B: Socket API Connection Flow
 Provide the exact function calls corresponding to [1] - [5]:
-1. `________`
+1. Bind
 2. `________`
 3. `________`
-4. `________`
-5. `________`
+4. listen
+5. accept
 
 ---
 
