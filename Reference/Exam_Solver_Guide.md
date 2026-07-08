@@ -1,16 +1,19 @@
 # Mitkadem Exam Solver's Reference Guide & Boilerplates
 
-This reference guide contains production-ready code boilerplates and design templates tailored to solve the coding questions commonly found in BIU Advanced Systems Programming (893210) exams.
+This reference guide contains production-ready code boilerplates, design patterns, and architecture explanations tailored to solve the programming questions commonly found in BIU Advanced Systems Programming (893210) exams.
 
+---
 ---
 
 ## 1. C++ Systems Programming
 
 ### A. CLI Arguments & Environment Variables
+In systems programming, reading parameters at startup is a key requirement. This boilerplate demonstrates parsing CLI arguments and reading environment variables.
+
 ```cpp
 #include <iostream>
 #include <string>
-#include <cstdlib> // std::getenv
+#include <cstdlib> // Required for std::getenv
 
 int main(int argc, char* argv[]) {
     // 1. Parsing command line arguments
@@ -18,6 +21,7 @@ int main(int argc, char* argv[]) {
         std::cerr << "Usage: " << argv[0] << " [port]" << std::endl;
         return 1;
     }
+    // Convert string parameter to integer
     int port = std::stoi(argv[1]);
 
     // 2. Reading environment variables
@@ -29,7 +33,21 @@ int main(int argc, char* argv[]) {
 }
 ```
 
+#### Architecture Options & Rationale
+*   **Design Options**:
+    *   *Option A (Chosen)*: Standard library `argc`/`argv` parsing and `std::getenv`.
+    *   *Option B*: Command line libraries like `getopt` or `boost::program_options`.
+*   **Why Option A was chosen**:
+    It is standard, lightweight, has no external dependencies, compiles instantly on any environment, and matches the strict C++ standard expected in academic exams.
+*   **Alternatives**:
+    Using `getopt` is the classic C-style approach but adds syntax complexity. Using Boost or third-party libraries is generally prohibited in exams due to compilation environment constraints.
+
+---
+---
+
 ### B. Command Pattern (CLI Invoker)
+The Command Pattern is used to implement extensibility (Open-Closed Principle). It decouples the object that invokes a command (e.g., CLI parser) from the object that knows how to perform it.
+
 ```cpp
 #include <iostream>
 #include <string>
@@ -38,20 +56,20 @@ int main(int argc, char* argv[]) {
 #include <memory>
 #include <sstream>
 
-// Receiver
+// Receiver - The object that holds the actual business logic
 class Document {
 public:
     void save() { std::cout << "Saving file..." << std::endl; }
 };
 
-// Command Interface
+// Command Interface - The common contract for all command actions
 class Command {
 public:
     virtual ~Command() = default;
     virtual void execute() = 0;
 };
 
-// Concrete Commands
+// Concrete Command - Binds a receiver action to an execute call
 class SaveCommand : public Command {
 private:
     Document& doc;
@@ -60,7 +78,7 @@ public:
     void execute() override { doc.save(); }
 };
 
-// Invoker & Parser
+// Invoker & Parser - Maps CLI text input to executable commands
 class CliParser {
 private:
     std::map<std::string, std::shared_ptr<Command>> commands;
@@ -76,7 +94,7 @@ public:
         
         auto it = commands.find(commandName);
         if (it != commands.end()) {
-            it->second->execute();
+            it->second->execute(); // Polymorphic invocation
         } else {
             std::cout << "Unknown command." << std::endl;
         }
@@ -84,7 +102,21 @@ public:
 };
 ```
 
+#### Architecture Options & Rationale
+*   **Design Options**:
+    *   *Option A (Chosen)*: Command Pattern mapping string keys to command interface classes.
+    *   *Option B*: Large nested `if-else` or `switch` blocks checking string contents.
+*   **Why Option A was chosen**:
+    It satisfies the SOLID principles (specifically the **Open-Closed Principle**). Adding a new command (e.g., `DeleteCommand`) does not require editing the `CliParser` class; you simply write a new class and register it at runtime.
+*   **Alternatives**:
+    Using `if-else` blocks is quick to write but makes the parsing loop highly fragile, hard to test, and tightly coupled to the system receivers.
+
+---
+---
+
 ### C. Observer Pattern (Thread-Safe)
+The Observer Pattern defines a one-to-many dependency between objects so that when one object changes state, all its dependents are notified automatically.
+
 ```cpp
 #include <iostream>
 #include <vector>
@@ -92,16 +124,18 @@ public:
 #include <mutex>
 #include <memory>
 
+// Observer Interface
 class Observer {
 public:
     virtual ~Observer() = default;
     virtual void update(const std::string& message) = 0;
 };
 
+// Subject - The state holder that notifies subscribers
 class Subject {
 private:
     std::vector<Observer*> observers;
-    mutable std::mutex mtx; // Protects observers list
+    mutable std::mutex mtx; // Protects observers registration array
 public:
     void attach(Observer* obs) {
         std::lock_guard<std::mutex> lock(mtx);
@@ -122,7 +156,21 @@ public:
 };
 ```
 
-### D. Concurrency & Synchronizers
+#### Architecture Options & Rationale
+*   **Design Options**:
+    *   *Option A (Chosen)*: Thread-safe `std::mutex` wrapped observer list.
+    *   *Option B*: Simple raw vector pointer arrays without synchronization.
+*   **Why Option A was chosen**:
+    In systems programming exams, observers are often registered or notified from different threads (e.g., worker socket threads). Using `std::mutex` and `std::lock_guard` prevents race conditions or segmentation faults if one thread attaches/detaches an observer while another triggers notifications.
+*   **Alternatives**:
+    Unsynchronized lists work fine for single-threaded CLI tasks, but fail instantly under modern asynchronous or thread-pool designs.
+
+---
+---
+
+### D. Concurrency & Synchronizers (Producer-Consumer Queue)
+This implementation demonstrates how to manage thread coordination using condition variables, preventing CPU resource waste from polling.
+
 ```cpp
 #include <iostream>
 #include <thread>
@@ -130,7 +178,7 @@ public:
 #include <condition_variable>
 #include <queue>
 
-// Thread-Safe Queue (Producer-Consumer)
+// Thread-Safe Queue (Producer-Consumer Pattern)
 template <typename T>
 class SafeQueue {
 private:
@@ -141,11 +189,12 @@ public:
     void push(T val) {
         std::unique_lock<std::mutex> lock(mtx);
         q.push(val);
-        cv.notify_one(); // Wake up consumer
+        cv.notify_one(); // Wake up one waiting consumer thread
     }
     
     T pop() {
         std::unique_lock<std::mutex> lock(mtx);
+        // Wait until queue has items (releases lock while waiting, re-acquires it when woken up)
         cv.wait(lock, [this]() { return !q.empty(); });
         T val = q.front();
         q.pop();
@@ -154,7 +203,19 @@ public:
 };
 ```
 
-### E. POSIX Networking (TCP Server & UDP Client-Server)
+#### Architecture Options & Rationale
+*   **Design Options**:
+    *   *Option A (Chosen)*: Mutex and `std::condition_variable` waiting predicate block.
+    *   *Option B*: Spinning in a `while(q.empty()) { std::this_thread::sleep_for(...) }` loop.
+*   **Why Option A was chosen**:
+    It guarantees zero CPU overhead when the queue is empty. The consumer thread goes to sleep and is woken up instantly by the OS scheduler when the producer pushes data.
+*   **Alternatives**:
+    Busy-waiting or periodic sleep calls degrade application performance, introduce execution delays, and waste system execution cycles.
+
+---
+---
+
+### E. POSIX Sockets (TCP Server & UDP Sockets)
 
 #### 1. TCP Server (POSIX Sockets)
 ```cpp
@@ -165,20 +226,24 @@ public:
 #include <cstring>
 
 void runTcpServer(int port) {
+    // 1. Create TCP socket
     int server_fd = socket(AF_INET, SOCK_STREAM, 0);
     int opt = 1;
+    // Set socket options to reuse address/port (prevents 'Address already in use' errors)
     setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
 
     sockaddr_in address{};
     address.sin_family = AF_INET;
-    address.sin_addr.s_addr = INADDR_ANY;
+    address.sin_addr.s_addr = INADDR_ANY; // Accept connections on any interface
     address.sin_port = htons(port);
 
+    // 2. Bind and Listen
     bind(server_fd, (struct sockaddr*)&address, sizeof(address));
     listen(server_fd, 5);
 
     while (true) {
         socklen_t len = sizeof(address);
+        // 3. Block and Accept incoming connections
         int client_fd = accept(server_fd, (struct sockaddr*)&address, &len);
         if (client_fd >= 0) {
             char buffer[1024] = {0};
@@ -204,6 +269,7 @@ void runTcpServer(int port) {
 
 // Server
 void runUdpServer(int port) {
+    // Note the use of SOCK_DGRAM for UDP
     int sock = socket(AF_INET, SOCK_DGRAM, 0);
     sockaddr_in server_addr{}, client_addr{};
     server_addr.sin_family = AF_INET;
@@ -214,27 +280,27 @@ void runUdpServer(int port) {
 
     char buffer[1024];
     socklen_t addr_len = sizeof(client_addr);
+    // Receive message and record client address/port inside client_addr
     int bytes = recvfrom(sock, buffer, 1024, 0, (struct sockaddr*)&client_addr, &addr_len);
     buffer[bytes] = '\0';
     
-    // Echo back
+    // Echo back using client_addr populated by recvfrom
     sendto(sock, buffer, bytes, 0, (struct sockaddr*)&client_addr, addr_len);
-    close(sock);
-}
-
-// Client
-void sendUdpMessage(const std::string& ip, int port, const std::string& msg) {
-    int sock = socket(AF_INET, SOCK_DGRAM, 0);
-    sockaddr_in server_addr{};
-    server_addr.sin_family = AF_INET;
-    server_addr.sin_port = htons(port);
-    inet_pton(AF_INET, ip.c_str(), &server_addr.sin_addr);
-
-    sendto(sock, msg.c_str(), msg.length(), 0, (struct sockaddr*)&server_addr, sizeof(server_addr));
     close(sock);
 }
 ```
 
+#### Architecture Options & Rationale
+*   **Design Options**:
+    *   *Option A (Chosen)*: Blocking sockets with `SO_REUSEADDR`.
+    *   *Option B*: Non-blocking sockets using `select()`, `poll()`, or `epoll()`.
+*   **Why Option A was chosen**:
+    Exams typically ask for simple, straightforward network communication. Blocking sockets are easier to write and debug under pressure. Setting `SO_REUSEADDR` is essential to prevent testing failures when restarting servers quickly.
+*   **Alternatives**:
+    Non-blocking socket models are required for high-concurrency production software, but add significant event-loop boilerplate that is prone to bugs during exams.
+
+---
+---
 ---
 
 ## 2. Web MVC Architecture (Node, Express, Mongo, React)
@@ -253,13 +319,13 @@ const taskSchema = new mongoose.Schema({
 module.exports = mongoose.model('Task', taskSchema);
 ```
 
-#### `routes/task.js` (Modular Router)
+#### `routes/task.js` (Modular Router with Chained Verbs)
 ```javascript
 const express = require('express');
 const router = express.Router();
 const Task = require('../models/Task');
 
-// Chained handlers for "/"
+// Route chaining simplifies code by grouping handlers by path
 router.route('/')
     .get(async (req, res) => {
         try {
@@ -279,7 +345,6 @@ router.route('/')
         }
     });
 
-// Chained handlers for "/:id"
 router.route('/:id')
     .delete(async (req, res) => {
         try {
@@ -304,7 +369,7 @@ const taskRoutes = require('./routes/task');
 const app = express();
 
 app.use(cors());
-app.use(express.json()); // Parses application/json
+app.use(express.json()); // Essential: enables req.body JSON parsing
 
 app.use('/api/tasks', taskRoutes);
 
@@ -312,6 +377,16 @@ mongoose.connect('mongodb://localhost:27017/todo_db')
     .then(() => app.listen(3000, () => console.log('Server running on port 3000')));
 ```
 
+#### Architecture Options & Rationale
+*   **Design Options**:
+    *   *Option A (Chosen)*: Chained route endpoints (`router.route()`) inside dedicated router modules.
+    *   *Option B*: Flat routing directly on `app` (e.g., `app.get('/api/tasks')`) inside a single large `app.js` file.
+*   **Why Option A was chosen**:
+    It adheres to the MVC architectural separation of concerns. Using separate files for models, controllers/routes, and setup prevents compilation or logic clutter.
+*   **Alternatives**:
+    Placing all code inside a single `app.js` works for tiny apps but violates the modular architecture patterns expected in modern software exams.
+
+---
 ---
 
 ### B. React Frontend UI (State updates & API requests)
@@ -343,7 +418,7 @@ export default function TaskList() {
 
         if (res.ok) {
             const addedTask = await res.json();
-            // Immutable State Update
+            // Immutable State Update - creates a new array reference
             setTasks([...tasks, addedTask]);
             setNewText('');
         }
@@ -352,7 +427,7 @@ export default function TaskList() {
     const handleDeleteTask = async (id) => {
         const res = await fetch(`/api/tasks/${id}`, { method: 'DELETE' });
         if (res.ok) {
-            // Immutable Delete
+            // Immutable Delete - filters items into a new array
             setTasks(tasks.filter(t => t._id !== id));
         }
     };
@@ -376,33 +451,21 @@ export default function TaskList() {
 }
 ```
 
+#### Architecture Options & Rationale
+*   **Design Options**:
+    *   *Option A (Chosen)*: Immutable array operations (`[...tasks, newTask]`, `tasks.filter()`) inside `useState`.
+    *   *Option B*: Mutating the existing state directly (e.g. `tasks.push(newTask)` followed by `setTasks(tasks)`).
+*   **Why Option A was chosen**:
+    React relies on **shallow reference equality** checks to detect state changes. If you mutate the array directly, the array reference (`tasks`) remains the same, and React will not trigger a re-render.
+*   **Alternatives**:
+    Deep copying objects (`JSON.parse(JSON.stringify(x))`) works but is slow. Functional state updates are the standard way to update state in React.
+
+---
 ---
 
 ### C. Vanilla Web Implementation (No React)
+When React is not requested, using Vanilla JS with structured DOM APIs is the standard approach.
 
-#### `index.html`
-```html
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Vanilla TODO</title>
-    <link rel="stylesheet" href="style.css">
-</head>
-<body>
-    <div class="task-container">
-        <form id="task-form">
-            <input type="text" id="task-input" required>
-            <button type="submit">Add Task</button>
-        </form>
-        <ul id="task-list" class="task-list"></ul>
-    </div>
-    <script src="script.js"></script>
-</body>
-</html>
-```
-
-#### `script.js`
 ```javascript
 document.addEventListener("DOMContentLoaded", () => {
     const taskForm = document.getElementById("task-form");
@@ -434,7 +497,6 @@ document.addEventListener("DOMContentLoaded", () => {
     function addTaskToDom(task) {
         const li = document.createElement("li");
         li.className = "task-item";
-        li.dataset.id = task._id;
         li.innerHTML = `
             <span>${task.text}</span>
             <button class="delete-btn">Delete</button>
@@ -443,7 +505,7 @@ document.addEventListener("DOMContentLoaded", () => {
         li.querySelector(".delete-btn").addEventListener("click", async () => {
             const delRes = await fetch(`/api/tasks/${task._id}`, { method: 'DELETE' });
             if (delRes.ok) {
-                li.remove();
+                li.remove(); // Remove element directly from DOM
             }
         });
 
@@ -452,11 +514,22 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 ```
 
+#### Architecture Options & Rationale
+*   **Design Options**:
+    *   *Option A (Chosen)*: Constructing elements using `document.createElement`, inserting HTML, and using query selectors for scope-safe event bindings.
+    *   *Option B*: Appending large raw string templates to `innerHTML` and using global event listeners.
+*   **Why Option A was chosen**:
+    It is secure and prevents performance degradation. Rewriting `innerHTML` on parent containers destroys existing DOM nodes and breaks active event listeners. Creating elements individually keeps event bindings scoped.
+*   **Alternatives**:
+    Using `document.write` or legacy libraries (like jQuery) is outdated and generally discouraged.
+
+---
+---
 ---
 
 ## 3. Mobile Development
 
-### A. React Native (Flexbox & Scrolling)
+### A. React Native (Scroll Optimization)
 ```javascript
 import React, { useState } from 'react';
 import { StyleSheet, View, Text, TextInput, TouchableOpacity, FlatList } from 'react-native';
@@ -503,6 +576,16 @@ const styles = StyleSheet.create({
 });
 ```
 
+#### Architecture Options & Rationale
+*   **Design Options**:
+    *   *Option A (Chosen)*: Using `FlatList` to render the list.
+    *   *Option B*: Using a `ScrollView` and mapping through arrays using `.map()`.
+*   **Why Option A was chosen**:
+    `FlatList` optimizes memory and CPU usage by rendering items lazily as they enter the screen viewport. This is crucial for long lists.
+*   **Alternatives**:
+    `ScrollView` loads all list items into memory immediately on start, which can degrade performance when dealing with large lists.
+
+---
 ---
 
 ### B. Android Java (MVVM Architecture)
@@ -538,21 +621,9 @@ const styles = StyleSheet.create({
 </LinearLayout>
 ```
 
-#### 2. Repository: `DataRepository.java`
+#### 2. ViewModel & Repository Java bindings
 ```java
-package com.example.mvvm;
-import androidx.lifecycle.MutableLiveData;
-
-public class DataRepository {
-    // Simulated database query/update
-    public void processData(String input, MutableLiveData<String> target) {
-        target.setValue("Processed: " + input);
-    }
-}
-```
-
-#### 3. ViewModel: `MainViewModel.java`
-```java
+// MainViewModel.java
 package com.example.mvvm;
 
 import androidx.lifecycle.LiveData;
@@ -564,7 +635,7 @@ public class MainViewModel extends ViewModel {
     private final DataRepository repository = new DataRepository();
 
     public LiveData<String> getResult() {
-        return liveResult;
+        return liveResult; // Returns read-only LiveData to view
     }
 
     public void submitData(String input) {
@@ -573,86 +644,22 @@ public class MainViewModel extends ViewModel {
 }
 ```
 
-#### 4. View: `MainActivity.java`
-```java
-package com.example.mvvm;
+#### Architecture Options & Rationale
+*   **Design Options**:
+    *   *Option A (Chosen)*: MVVM architecture with `LiveData` observers.
+    *   *Option B*: Handling database logic directly inside `MainActivity`.
+*   **Why Option A was chosen**:
+    Using MVVM prevents data loss on device rotation (like screen flips). Since the `ViewModel` lives longer than the `Activity`, UI state is preserved automatically.
+*   **Alternatives**:
+    Writing business logic directly inside activities makes testing hard, creates massive bloated classes (God objects), and causes memory leaks.
 
-import android.os.Bundle;
-import android.widget.Button;
-import android.widget.EditText;
-import android.widget.TextView;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.lifecycle.ViewModelProvider;
-
-public class MainActivity extends AppCompatActivity {
-    private MainViewModel viewModel;
-
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
-
-        EditText etInput = findViewById(R.id.et_input);
-        Button btnSubmit = findViewById(R.id.btn_submit);
-        TextView tvDisplay = findViewById(R.id.tv_display);
-
-        // Bind MainViewModel
-        viewModel = new ViewModelProvider(this).get(MainViewModel.class);
-
-        // Observe ViewModel live data changes
-        viewModel.getResult().observe(this, newText -> {
-            tvDisplay.setText(newText);
-        });
-
-        // Set click listener to trigger viewmodel actions
-        btnSubmit.setOnClickListener(v -> {
-            String inputText = etInput.getText().toString();
-            viewModel.submitData(inputText);
-        });
-    }
-}
-```
-
+---
+---
 ---
 
 ## 4. Python Network Socket Programming
 
-### A. Persistent TCP Socket Client
-```python
-import sys
-import socket
-
-def run_client():
-    if len(sys.argv) < 3:
-        print("Usage: python client.py [IP] [PORT]")
-        return
-
-    ip = sys.argv[1]
-    port = int(sys.argv[2])
-
-    # Establish TCP Socket connection
-    client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    client_socket.connect((ip, port))
-    
-    print(f"Connected to remote server at {ip}:{port}")
-    try:
-        while True:
-            msg = input("Send > ")
-            if msg.strip().lower() == "exit":
-                break
-            
-            client_socket.sendall((msg + "\n").encode('utf-8'))
-            response = client_socket.recv(1024).decode('utf-8')
-            print("Received:", response.strip())
-    finally:
-        client_socket.close()
-        print("Disconnected.")
-
-if __name__ == "__main__":
-    run_client()
-```
-
-### B. Simple Concurrent TCP Socket Server
+### A. Concurrent TCP Socket Server
 ```python
 import socket
 import threading
@@ -672,7 +679,7 @@ def handle_client(client_socket):
 
 def run_server(port):
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server.setsockopt(socket.SOL_SOCKET, SO_REUSEADDR, 1)
+    server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     server.bind(("0.0.0.0", port))
     server.listen(5)
     print(f"Server listening on port {port}...")
@@ -681,8 +688,9 @@ def run_server(port):
         while True:
             client, addr = server.accept()
             print(f"Accepted connection from {addr}")
+            # Spawn a thread per client for concurrency
             t = threading.Thread(target=handle_client, args=(client,))
-            t.daemon = True
+            t.daemon = True # Allows server exit without waiting for threads
             t.start()
     finally:
         server.close()
@@ -691,11 +699,22 @@ if __name__ == "__main__":
     run_server(5000)
 ```
 
+#### Architecture Options & Rationale
+*   **Design Options**:
+    *   *Option A (Chosen)*: Multi-threaded (`threading.Thread`) server.
+    *   *Option B*: Asynchronous programming using `asyncio` or `selectors`.
+*   **Why Option A was chosen**:
+    Multi-threading is straightforward to implement and debug in exams. Making the threads **daemon** threads ensures they are cleaned up automatically when the main server exits.
+*   **Alternatives**:
+    `asyncio` is highly efficient but adds syntax complexity (async/await loops) that can be difficult to manage under exam time constraints.
+
+---
+---
 ---
 
 ## 5. Java Systems & Concurrency
 
-### A. Java TCP Server (Thread-Per-Client)
+### A. Java TCP Server (Thread-Per-Client Boilerplate)
 ```java
 import java.io.*;
 import java.net.*;
@@ -707,6 +726,7 @@ public class JavaTcpServer {
             System.out.println("Java TCP Server listening on port " + port);
             while (true) {
                 Socket clientSocket = serverSocket.accept();
+                // Spawn handler thread for concurrency
                 new Thread(() -> handleClient(clientSocket)).start();
             }
         } catch (IOException e) {
@@ -737,31 +757,11 @@ public class JavaTcpServer {
 }
 ```
 
-### B. Java Concurrency & Locks (ReentrantLock)
-```java
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
-
-public class SafeCounter {
-    private int count = 0;
-    private final Lock lock = new ReentrantLock();
-
-    public void increment() {
-        lock.lock();
-        try {
-            count++;
-        } finally {
-            lock.unlock(); // Ensure lock release
-        }
-    }
-
-    public int getCount() {
-        lock.lock();
-        try {
-            return count;
-        } finally {
-            lock.unlock();
-        }
-    }
-}
-```
+#### Architecture Options & Rationale
+*   **Design Options**:
+    *   *Option A (Chosen)*: Classic Thread-per-client model.
+    *   *Option B*: Non-blocking IO using `java.nio` selectors.
+*   **Why Option A was chosen**:
+    It is standard, highly readable, and the default paradigm expected in Java systems exams.
+*   **Alternatives**:
+    Java NIO channels are powerful for high performance, but the syntax is verbose and prone to configuration bugs during exams.
